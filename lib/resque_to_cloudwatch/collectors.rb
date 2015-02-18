@@ -260,4 +260,5 @@ module ResqueToCloudwatch
     def to_s
       metric_name
     end
+  end
 end
