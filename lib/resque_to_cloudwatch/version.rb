@@ -1,3 +1,3 @@
 module ResqueToCloudwatch
-  VERSION = "1.6.1.ifttt"
+  VERSION = "1.6.2.ifttt"
 end
