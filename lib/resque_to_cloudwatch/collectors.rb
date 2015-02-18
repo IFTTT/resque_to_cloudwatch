@@ -13,7 +13,7 @@ module ResqueToCloudwatch
     end
     
     def metric_name
-      "resque_queues"
+      "sum_of_all_resque_queues"
     end
     
     def to_s
@@ -212,7 +212,7 @@ module ResqueToCloudwatch
     end
     
     def metric_name
-      "resque_work_remaining"
+      "total_resque_work_remaining"
     end
     
     def to_s
