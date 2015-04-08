@@ -261,4 +261,36 @@ module ResqueToCloudwatch
       metric_name
     end
   end
+
+  class LoadPercentCollector
+    
+    def initialize(config)
+      @config = config
+    end
+    
+    def get_value
+      workers_working / workers_alive
+    end
+
+    def workers_working
+      redis = Redis.new(:host => @config.redis_host, :port => @config.redis_port)
+      redis.smembers('resque:workers').select do |worker_key|
+        redis.exists("resque:worker:#{worker_key}")
+      end.length
+    end
+    
+    def workers_alive
+      redis = Redis.new(:host => @config.redis_host, :port => @config.redis_port)
+      redis.smembers('resque:workers').length
+    end
+
+    def metric_name
+      "resque_workers_load_percent"
+    end
+    
+    def to_s
+      metric_name
+    end
+    
+  end
 end
