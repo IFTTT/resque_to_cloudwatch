@@ -158,9 +158,10 @@ module ResqueToCloudwatch
     
     def get_value
       redis = Redis.new(:host => @config.redis_host, :port => @config.redis_port)
-      redis.smembers('resque:workers').select do |worker_key|
-        redis.exists("resque:worker:#{worker_key}")
-      end.length
+      # Collect up all workers
+      all_workers = redis.smembers('resque:workers')
+      # Count how many currently have jobs
+      currently_working_workers_count = (all_workers.count == 0) ? 0 : redis.mget(all_workers.map{|name|"resque:worker:#{name}"}).compact.count
     end
     
     def metric_name
@@ -202,13 +203,15 @@ module ResqueToCloudwatch
     
     def get_value
       redis = Redis.new(:host => @config.redis_host, :port => @config.redis_port)
-      working = redis.smembers('resque:workers').select do |worker_key|
-        redis.exists("resque:worker:#{worker_key}")
-      end.length
+      # Collect up all workers
+      all_workers = redis.smembers('resque:workers')
+      # Count how many currently have jobs
+      currently_working_workers_count = (all_workers.count == 0) ? 0 : redis.mget(all_workers.map{|name|"resque:worker:#{name}"}).compact.count
+
       queue_length = redis.smembers('resque:queues').map do |queue_key|
         redis.llen("resque:queue:#{queue_key}")
       end.reduce(:+)
-      working + queue_length
+      currently_working_workers_count + queue_length
     end
     
     def metric_name
@@ -269,19 +272,15 @@ module ResqueToCloudwatch
     end
     
     def get_value
-      workers_working / workers_alive
-    end
+      redis = Redis.new(:host => @config.redis_host, :port => @config.redis_port)
+      # Collect up all workers
+      all_workers = redis.smembers('resque:workers')
+      # Count them
+      all_workers_count = all_workers.count
+      # Count how many currently have jobs
+      currently_working_workers_count = (all_workers.count == 0) ? 0 : redis.mget(all_workers.map{|name|"resque:worker:#{name}"}).compact.count
 
-    def workers_working
-      redis = Redis.new(:host => @config.redis_host, :port => @config.redis_port)
-      redis.smembers('resque:workers').select do |worker_key|
-        redis.exists("resque:worker:#{worker_key}")
-      end.length
-    end
-    
-    def workers_alive
-      redis = Redis.new(:host => @config.redis_host, :port => @config.redis_port)
-      redis.smembers('resque:workers').length
+      (currently_working_workers_count.to_f / all_workers_count.to_f) * 100
     end
 
     def metric_name
